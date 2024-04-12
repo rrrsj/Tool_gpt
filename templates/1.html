@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>EXChatGPT</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.3.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="../static/styles/prism.css">
+  <link rel="stylesheet" href="../static/styles/style.css">
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
+  <script src="../static/js/tts.js"></script>
+  <script src="../static/js//prism.js"></script>
+</head>
+
+<body>
+  <!-- partial:index.partial.html -->
+  <div class="container">
+    <div class="sidebar">
+      <button  class="new-chat" onclick="window.open('http://10.102.32.71:1666/main')">
+        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
+          stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        New chat
+      </button>
+      <ul class="sidebar-list">
+      </ul>
+    </div>
+    <div class="chat-page">
+      <section class="msger" id="msger">
+        <header class="msger-header">
+          <div class="msger-header-title">
+            ToolGPT <span> </span>GPT3.5-Turbo
+          </div>
+        </header>
+        <main class="msger-chat" id="msger-chat">
+            
+        </main>
+      </section>
+      <div class="row">
+        <div class="col col-first">
+          <form>
+            <select  id="mode" name="mode">
+              <option value="3">Arxiv Tool</option>
+              <option value="2">Tool</option>
+              <option value="1">COT</option>
+              <option value="0">Non Tool</option>
+            </select>
+            <br>
+          </form>
+        </div>
+        <select id="prompt"></select>
+        <div class="col">
+          <form class="msger-inputarea">
+            <textarea type="text" class="msger-input" id="msger-input" placeholder="..."></textarea>
+            <button  class="msger-send-btn" id="msger-send-btn"  type="button" onclick="show()">↵</button>
+          </form>
+        </div>
+        <button type="submit" class="msger-send-record" onclick="fromMic()">🎤</button>
+      </div>
+    </div>
+</div>
+<script src="https://cdn.bootcss.com/marked/0.8.1/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/go.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script>
+ 
+  const msger = document.getElementById("msger");
+  const sendButton=document.getElementById("msger-send-btn");
+  const msgerChat=document.getElementById("msger-chat")
+  const BOT_IMG = "../static/styles/ChatGPT_logo.png";
+  const BOT_NAME = "BOT";
+  const PERSON_IMG = "../static/styles/person.jpg";
+  const PERSON_NAME = "You";
+  const mode = document.getElementById("mode").value;
+  appendMessage(BOT_NAME,BOT_IMG,"left","Hello, I am an LLM that can use models, now can use multiplier, navigation, search, weather.",null,'',null);
+  function show()//检测发送按钮点击点击增加对话
+  {
+    var history=gethistory();
+    var text=document.getElementById("msger-input").value;
+    var option=document.getElementById("mode").value;
+    nowsquence=marked(text);
+    document.getElementById("msger-input").value='';
+    appendMessage(PERSON_NAME, PERSON_IMG, "right",nowsquence, mode, formatDate(new Date()),null);
+    var data = {
+            data: JSON.stringify({
+            'name': text,
+            'history':history,
+            'option':option
+            }),
+         }
+    $.ajax({
+			type: 'POST',
+			url: '/testGet',
+      timeout:200000,
+			dataType: 'json',
+			data: data,
+      xhrFields: {
+                withCredentials: true // 这里设置了withCredentials
+            },
+			success: function(res){
+        var linshi=marked(res['status']);//markdown支持
+        appendMessage(BOT_NAME,BOT_IMG,"left",linshi,null,'',null);
+        console.log(res);
+			},
+			error: function(){
+				consle.log('error');
+			}
+		})	
+  }
+  function appendMessage(name, img, side, text, mode, time,imgurl) {//增加对话的函数，参数分别为名称，头像，左右，文本，模式（一般为空），时间，图片
+        let chatInfo = '';
+        var msgHTML ;
+        if(imgurl==null)
+        {msgHTML= `
+<div class="msg ${side}-msg">
+  <div class="msg-img" style="background-image: url(${img})"></div>
+  <div class="msg-bubble">
+    <div class="msg-info">
+      <div class="msg-info-name">${name}</div>
+      ${chatInfo}
+    </div>
+    <div class="msg-text">${text}</div>
+  </div>
+</div>
+`;      }
+        else
+        {
+          msgHTML= `
+<div class="msg ${side}-msg">
+  <div class="msg-img" style="background-image: url(${img})"></div>
+  <div class="msg-bubble">
+    <div class="msg-info">
+      <div class="msg-info-name">${name}</div>
+      ${chatInfo}
+    </div>
+    <div class="msg-text">${text}</div>
+    <img src=${imgurl} alt="">
+  </div>
+</div>
+`; 
+        }
+        msgerChat.insertAdjacentHTML("beforeend", msgHTML);
+        msger.scrollTop = msger.scrollHeight;
+      }
+  function formatDate(date) {
+      const h = "0" + date.getHours();
+      const m = "0" + date.getMinutes();
+      return `${h.slice(-2)}:${m.slice(-2)}`;
+    }
+  function gethistory()
+  {
+    var arr = new Array;
+    var childs1=msgerChat.getElementsByClassName('msg right-msg');
+    var childs2=msgerChat.getElementsByClassName('msg left-msg');
+    for(i=0; i < childs1.length ; i++)
+	  { 
+      var linshi1=childs1[i].getElementsByClassName('msg-text')[0].firstChild.innerHTML;
+      var linshi2=childs2[i+1].getElementsByClassName('msg-text')[0].firstChild.innerHTML;
+      arr.push(linshi1);
+      arr.push(linshi2);
+      console.log(arr);
+    }
+    return arr;
+  }
+</script>
+</body>
+    
+
