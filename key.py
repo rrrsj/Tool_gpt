@@ -1,1 +1,1 @@
-gpt_key='e956e7297a28782fbb4f2f2f41234792'
+gpt_key=''
